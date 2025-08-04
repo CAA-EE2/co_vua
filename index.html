@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cờ Vua Việt Nam</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f5f5dc;
+            margin: 0;
+            padding: 20px;
+            position: relative;
+        }
+        
+        h1 {
+            color: #8b4513;
+            margin-bottom: 20px;
+        }
+        
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            gap: 1px;
+            border: 3px solid #8b4513;
+            background-color: #8b4513;
+        }
+        
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .white {
+            background-color: #f0d9b5;
+        }
+        
+        .black {
+            background-color: #b58863;
+        }
+        
+        .piece {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 14px;
+            user-select: none;
+        }
+        
+        .white-piece {
+            background-color: white;
+            color: black;
+            border: 1px solid #999;
+        }
+        
+        .black-piece {
+            background-color: black;
+            color: white;
+            border: 1px solid #333;
+        }
+        
+        .selected {
+            box-shadow: 0 0 10px 5px rgba(0, 255, 0, 0.7);
+        }
+        
+        .possible-move {
+            box-shadow: 0 0 10px 3px rgba(0, 0, 255, 0.5) inset;
+        }
+        
+        .turn-indicator {
+            margin: 20px 0;
+            padding: 10px 20px;
+            background-color: #8b4513;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .timer {
+            margin: 10px 0;
+            padding: 10px 20px;
+            background-color: #8b4513;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 100;
+            display: none;
+        }
+        
+        .game-over h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: gold;
+        }
+        
+        .game-over p {
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+        
+        .game-over button {
+            padding: 10px 20px;
+            background-color: #8b4513;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        
+        .game-over button:hover {
+            background-color: #a0522d;
+        }
+        
+        .image-top-left {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 150px;
+            height: auto;
+            z-index: 50;
+        }
+        
+        .image-bottom-right {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 150px;
+            height: auto;
+            z-index: 50;
+        }
+        
+        .promotion-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 100;
+            display: none;
+        }
+        
+        .promotion-modal button {
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #8b4513;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .promotion-modal button:hover {
+            background-color: #a0522d;
+        }
+    </style>
+</head>
+<body>
+    <img src="1.jpg" class="image-top-left" alt="Top Left Image">
+    <h1>Cờ Vua Việt Nam</h1>
+    <div class="turn-indicator" id="turnIndicator">Lượt đi: Trắng</div>
+    <div class="timer" id="matchTimer">Thời gian trận đấu: 0 phút 0 giây</div>
+    <div class="chess-board" id="chessBoard"></div>
+    <img src="2.jpg" class="image-bottom-right" alt="Bottom Right Image">
+    
+    <div class="game-over" id="gameOverModal">
+        <h2 id="winnerMessage"></h2>
+        <p id="durationMessage"></p>
+        <button id="playAgainBtn">Chơi lại</button>
+    </div>
+    
+    <div class="promotion-modal" id="promotionModal">
+        <h2>Chọn quân để phong cấp</h2>
+        <button data-type="hậu">Hậu</button>
+        <button data-type="xe">Xe</button>
+        <button data-type="tượng">Tượng</button>
+        <button data-type="mã">Mã</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const chessBoard = document.getElementById('chessBoard');
+            const turnIndicator = document.getElementById('turnIndicator');
+            const matchTimer = document.getElementById('matchTimer');
+            const gameOverModal = document.getElementById('gameOverModal');
+            const winnerMessage = document.getElementById('winnerMessage');
+            const durationMessage = document.getElementById('durationMessage');
+            const playAgainBtn = document.getElementById('playAgainBtn');
+            const promotionModal = document.getElementById('promotionModal');
+            
+            let selectedPiece = null;
+            let currentTurn = 'white';
+            let gameActive = true;
+            let boardState = createInitialBoard();
+            let startTime = Date.now();
+            let timerInterval = null;
+            let moveHistory = [];
+            let castlingAvailability = {
+                white: { kingMoved: false, rookA: false, rookH: false },
+                black: { kingMoved: false, rookA: false, rookH: false }
+            };
+            let enPassantTarget = null;
+            
+            // Khởi tạo bộ đếm thời gian
+            function startTimer() {
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    if (gameActive) {
+                        const currentTime = Date.now();
+                        const duration = currentTime - startTime;
+                        matchTimer.textContent = `Thời gian trận đấu: ${formatDuration(duration)}`;
+                    }
+                }, 1000);
+            }
+            
+            // Định dạng thời gian
+            function formatDuration(ms) {
+                const seconds = Math.floor((ms / 1000) % 60);
+                const minutes = Math.floor((ms / (1000 * 60)) % 60);
+                const hours = Math.floor(ms / (1000 * 60 * 60));
+                return `${hours > 0 ? hours + ' giờ ' : ''}${minutes} phút ${seconds} giây`;
+            }
+            
+            // Tạo bàn cờ ban đầu
+            function createInitialBoard() {
+                const board = Array(8).fill().map(() => Array(8).fill(null));
+                
+                // Quân đen (ở phía trên)
+                board[0][0] = { type: 'xe', color: 'black' };
+                board[0][1] = { type: 'mã', color: 'black' };
+                board[0][2] = { type: 'tượng', color: 'black' };
+                board[0][3] = { type: 'hậu', color: 'black' };
+                board[0][4] = { type: 'tướng', color: 'black' };
+                board[0][5] = { type: 'tượng', color: 'black' };
+                board[0][6] = { type: 'mã', color: 'black' };
+                board[0][7] = { type: 'xe', color: 'black' };
+                
+                for (let i = 0; i < 8; i++) {
+                    board[1][i] = { type: 'tốt', color: 'black' };
+                }
+                
+                // Quân trắng (ở phía dưới)
+                board[7][0] = { type: 'xe', color: 'white' };
+                board[7][1] = { type: 'mã', color: 'white' };
+                board[7][2] = { type: 'tượng', color: 'white' };
+                board[7][3] = { type: 'hậu', color: 'white' };
+                board[7][4] = { type: 'tướng', color: 'white' };
+                board[7][5] = { type: 'tượng', color: 'white' };
+                board[7][6] = { type: 'mã', color: 'white' };
+                board[7][7] = { type: 'xe', color: 'white' };
+                
+                for (let i = 0; i < 8; i++) {
+                    board[6][i] = { type: 'tốt', color: 'white' };
+                }
+                
+                return board;
+            }
+            
+            // Hiển thị bàn cờ
+            function renderBoard() {
+                chessBoard.innerHTML = '';
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const square = document.createElement('div');
+                        square.className = `square ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
+                        square.dataset.row = row;
+                        square.dataset.col = col;
+                        
+                        if (boardState[row][col]) {
+                            const piece = document.createElement('div');
+                            piece.className = `piece ${boardState[row][col].color}-piece`;
+                            piece.textContent = boardState[row][col].type;
+                            piece.dataset.row = row;
+                            piece.dataset.col = col;
+                            
+                            if (selectedPiece && selectedPiece.row === row && selectedPiece.col === col) {
+                                piece.classList.add('selected');
+                            }
+                            
+                            square.appendChild(piece);
+                        }
+                        
+                        square.addEventListener('click', () => handleSquareClick(row, col));
+                        chessBoard.appendChild(square);
+                    }
+                }
+            }
+            
+            // Kiểm tra xem ô có bị quân địch tấn công không
+            function isSquareAttacked(row, col, attackerColor) {
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const piece = boardState[r][c];
+                        if (piece && piece.color === attackerColor) {
+                            if (isValidMove(r, c, row, col, true)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+            
+            // Tìm vị trí của tướng
+            function findKing(color) {
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if (boardState[row][col] && 
+                            boardState[row][col].type === 'tướng' && 
+                            boardState[row][col].color === color) {
+                            return { row, col };
+                        }
+                    }
+                }
+                return null;
+            }
+            
+            // Kiểm tra xem vua có bị chiếu không
+            function isKingInCheck(color) {
+                const kingPos = findKing(color);
+                if (!kingPos) return false;
+                const opponentColor = color === 'white' ? 'black' : 'white';
+                return isSquareAttacked(kingPos.row, kingPos.col, opponentColor);
+            }
+            
+            // Kiểm tra nước đi có hợp lệ không (bao gồm kiểm tra chiếu tướng)
+            function isMoveLegal(fromRow, fromCol, toRow, toCol) {
+                const piece = boardState[fromRow][fromCol];
+                if (!piece) return false;
+                
+                // Thử di chuyển
+                const originalPiece = boardState[toRow][toCol];
+                const enPassantCaptured = piece.type === 'tốt' && !originalPiece && 
+                    Math.abs(fromCol - toCol) === 1 && enPassantTarget && 
+                    enPassantTarget.row === toRow - (piece.color === 'white' ? -1 : 1) && 
+                    enPassantTarget.col === toCol ? boardState[enPassantTarget.row][toCol] : null;
+                
+                boardState[toRow][toCol] = boardState[fromRow][fromCol];
+                boardState[fromRow][fromCol] = null;
+                if (enPassantCaptured) {
+                    boardState[enPassantTarget.row][toCol] = null;
+                }
+                
+                // Kiểm tra xem vua của mình có bị chiếu không
+                const inCheck = isKingInCheck(piece.color);
+                
+                // Hoàn tác di chuyển
+                boardState[fromRow][fromCol] = boardState[toRow][toCol];
+                boardState[toRow][toCol] = originalPiece;
+                if (enPassantCaptured) {
+                    boardState[enPassantTarget.row][toCol] = enPassantCaptured;
+                }
+                
+                return !inCheck;
+            }
+            
+            // Kiểm tra xem có nước đi hợp lệ nào không
+            function hasLegalMoves(color) {
+                for (let fromRow = 0; fromRow < 8; fromRow++) {
+                    for (let fromCol = 0; fromCol < 8; fromCol++) {
+                        const piece = boardState[fromRow][fromCol];
+                        if (piece && piece.color === color) {
+                            for (let toRow = 0; toRow < 8; toRow++) {
+                                for (let toCol = 0; toCol < 8; toCol++) {
+                                    if (isValidMove(fromRow, fromCol, toRow, toCol) && 
+                                        isMoveLegal(fromRow, fromCol, toRow, toCol)) {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+            
+            // Kiểm tra nước đi hợp lệ
+            function isValidMove(fromRow, fromCol, toRow, toCol, forAttackCheck = false) {
+                const piece = boardState[fromRow][fromCol];
+                const targetPiece = boardState[toRow][toCol];
+                
+                // Không thể ăn quân cùng màu
+                if (!forAttackCheck && targetPiece && targetPiece.color === piece.color) {
+                    return false;
+                }
+                
+                const rowDiff = toRow - fromRow;
+                const colDiff = toCol - fromCol;
+                const absRowDiff = Math.abs(rowDiff);
+                const absColDiff = Math.abs(colDiff);
+                
+                switch (piece.type) {
+                    case 'tốt':
+                        const direction = piece.color === 'white' ? -1 : 1;
+                        const startRow = piece.color === 'white' ? 6 : 1;
+                        
+                        // Di chuyển thẳng
+                        if (fromCol === toCol && !targetPiece) {
+                            if (rowDiff === direction) return true;
+                            if (fromRow === startRow && rowDiff === 2 * direction && 
+                                !boardState[fromRow + direction][toCol]) return true;
+                        }
+                        // Ăn chéo
+                        if (absColDiff === 1 && rowDiff === direction && 
+                            targetPiece && targetPiece.color !== piece.color) return true;
+                        // En passant
+                        if (!forAttackCheck && absColDiff === 1 && rowDiff === direction && !targetPiece && 
+                            enPassantTarget && enPassantTarget.row === toRow - direction && 
+                            enPassantTarget.col === toCol) return true;
+                        return false;
+                        
+                    case 'xe':
+                        if (fromRow !== toRow && fromCol !== toCol) return false;
+                        return isPathClear(fromRow, fromCol, toRow, toCol);
+                        
+                    case 'mã':
+                        return (absRowDiff === 2 && absColDiff === 1) || 
+                               (absRowDiff === 1 && absColDiff === 2);
+                        
+                    case 'tượng':
+                        if (absRowDiff !== absColDiff) return false;
+                        return isPathClear(fromRow, fromCol, toRow, toCol);
+                        
+                    case 'hậu':
+                        if (fromRow === toRow || fromCol === toCol || absRowDiff === absColDiff) {
+                            return isPathClear(fromRow, fromCol, toRow, toCol);
+                        }
+                        return false;
+                        
+                    case 'tướng':
+                        // Di chuyển 1 ô
+                        if (absRowDiff <= 1 && absColDiff <= 1 && !(absRowDiff === 0 && absColDiff === 0)) {
+                            return true;
+                        }
+                        // Nhập thành
+                        if (!forAttackCheck && fromRow === toRow && absColDiff === 2 && 
+                            !castlingAvailability[piece.color].kingMoved && !isKingInCheck(piece.color)) {
+                            if (toCol === 6 && !castlingAvailability[piece.color].rookH) {
+                                // Nhập thành bên vua
+                                if (!boardState[fromRow][5] && !boardState[fromRow][6] &&
+                                    !isSquareAttacked(fromRow, 5, piece.color === 'white' ? 'black' : 'white') &&
+                                    !isSquareAttacked(fromRow, 6, piece.color === 'white' ? 'black' : 'white')) {
+                                    return true;
+                                }
+                            } else if (toCol === 2 && !castlingAvailability[piece.color].rookA) {
+                                // Nhập thành bên hậu
+                                if (!boardState[fromRow][1] && !boardState[fromRow][2] && !boardState[fromRow][3] &&
+                                    !isSquareAttacked(fromRow, 2, piece.color === 'white' ? 'black' : 'white') &&
+                                    !isSquareAttacked(fromRow, 3, piece.color === 'white' ? 'black' : 'white')) {
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
+                        
+                    default:
+                        return false;
+                }
+            }
+            
+            // Kiểm tra đường đi có bị cản không
+            function isPathClear(fromRow, fromCol, toRow, toCol) {
+                const rowStep = toRow === fromRow ? 0 : toRow > fromRow ? 1 : -1;
+                const colStep = toCol === fromCol ? 0 : toCol > fromCol ? 1 : -1;
+                let row = fromRow + rowStep;
+                let col = fromCol + colStep;
+                
+                while (row !== toRow || col !== toCol) {
+                    if (boardState[row][col]) return false;
+                    row += rowStep;
+                    col += colStep;
+                }
+                return true;
+            }
+            
+            // Thực hiện di chuyển
+            function makeMove(fromRow, fromCol, toRow, toCol, promotionType = null) {
+                const piece = boardState[fromRow][fromCol];
+                const capturedPiece = boardState[toRow][toCol];
+                let enPassantCaptured = null;
+                
+                // Ghi lại nước đi
+                moveHistory.push({
+                    from: { row: fromRow, col: fromCol },
+                    to: { row: toRow, col: toCol },
+                    piece: { ...piece },
+                    captured: capturedPiece ? { ...capturedPiece } : null
+                });
+                
+                // Xử lý en passant
+                enPassantTarget = null;
+                if (piece.type === 'tốt' && Math.abs(fromRow - toRow) === 2) {
+                    enPassantTarget = { row: (fromRow + toRow) / 2, col: toCol };
+                } else if (piece.type === 'tốt' && !capturedPiece && Math.abs(fromCol - toCol) === 1 && 
+                           enPassantTarget && enPassantTarget.row === toRow - (piece.color === 'white' ? -1 : 1) && 
+                           enPassantTarget.col === toCol) {
+                    enPassantCaptured = boardState[toRow - (piece.color === 'white' ? -1 : 1)][toCol];
+                    boardState[toRow - (piece.color === 'white' ? -1 : 1)][toCol] = null;
+                }
+                
+                // Di chuyển quân cờ
+                boardState[toRow][toCol] = boardState[fromRow][fromCol];
+                boardState[fromRow][fromCol] = null;
+                
+                // Phong cấp tốt
+                if (piece.type === 'tốt' && (toRow === 0 || toRow === 7)) {
+                    boardState[toRow][toCol].type = promotionType || 'hậu';
+                }
+                
+                // Cập nhật nhập thành
+                if (piece.type === 'tướng') {
+                    castlingAvailability[piece.color].kingMoved = true;
+                    if (Math.abs(fromCol - toCol) === 2) {
+                        // Nhập thành
+                        if (toCol === 6) {
+                            boardState[fromRow][5] = boardState[fromRow][7];
+                            boardState[fromRow][7] = null;
+                        } else if (toCol === 2) {
+                            boardState[fromRow][3] = boardState[fromRow][0];
+                            boardState[fromRow][0] = null;
+                        }
+                    }
+                }
+                if (piece.type === 'xe') {
+                    if (fromCol === 0) castlingAvailability[piece.color].rookA = true;
+                    if (fromCol === 7) castlingAvailability[piece.color].rookH = true;
+                }
+                
+                return { capturedPiece, enPassantCaptured };
+            }
+            
+            // Xử lý phong cấp
+            function handlePromotion(row, col, color, callback) {
+                promotionModal.style.display = 'block';
+                gameActive = false;
+                
+                const buttons = promotionModal.querySelectorAll('button');
+                buttons.forEach(button => {
+                    button.onclick = () => {
+                        const promotionType = button.dataset.type;
+                        boardState[row][col].type = promotionType;
+                        promotionModal.style.display = 'none';
+                        gameActive = true;
+                        callback();
+                    };
+                });
+            }
+            
+            // Kết thúc trò chơi
+            function endGame(message) {
+                gameActive = false;
+                clearInterval(timerInterval);
+                const endTime = Date.now();
+                const duration = endTime - startTime;
+                winnerMessage.textContent = message;
+                durationMessage.textContent = `Thời gian trận đấu: ${formatDuration(duration)}`;
+                gameOverModal.style.display = 'block';
+            }
+            
+            // Kiểm tra trạng thái trò chơi
+            function checkGameState() {
+                const opponentColor = currentTurn === 'white' ? 'black' : 'white';
+                const inCheck = isKingInCheck(opponentColor);
+                const hasMoves = hasLegalMoves(opponentColor);
+                
+                if (!hasMoves) {
+                    if (inCheck) {
+                        endGame(`Chiến thắng: ${currentTurn === 'white' ? 'TRẮNG' : 'ĐEN'} thắng!`);
+                    } else {
+                        endGame('Hòa: Bế tắc!');
+                    }
+                    return true;
+                }
+                return false;
+            }
+            
+            // Xử lý khi click vào ô cờ
+            function handleSquareClick(row, col) {
+                if (!gameActive) return;
+                
+                const piece = boardState[row][col];
+                
+                // Nếu đã chọn một quân cờ và click vào ô khác
+                if (selectedPiece) {
+                    const fromRow = selectedPiece.row;
+                    const fromCol = selectedPiece.col;
+                    
+                    // Kiểm tra nước đi hợp lệ
+                    if (isValidMove(fromRow, fromCol, row, col) && isMoveLegal(fromRow, fromCol, row, col)) {
+                        const isPawnPromotion = boardState[fromRow][fromCol].type === 'tốt' && 
+                                               (row === 0 || row === 7);
+                        
+                        const moveCallback = () => {
+                            // Cập nhật lượt đi
+                            currentTurn = currentTurn === 'white' ? 'black' : 'white';
+                            turnIndicator.textContent = `Lượt đi: ${currentTurn === 'white' ? 'Trắng' : 'Đen'}`;
+                            selectedPiece = null;
+                            renderBoard();
+                            if (!checkGameState()) {
+                                if (isKingInCheck(currentTurn)) {
+                                    turnIndicator.textContent += ' (Bị chiếu)';
+                                }
+                            }
+                        };
+                        
+                        if (isPawnPromotion) {
+                            handlePromotion(row, col, boardState[fromRow][fromCol].color, moveCallback);
+                            makeMove(fromRow, fromCol, row, col);
+                        } else {
+                            makeMove(fromRow, fromCol, row, col);
+                            moveCallback();
+                        }
+                    } else {
+                        selectedPiece = null;
+                        renderBoard();
+                    }
+                } 
+                // Nếu chọn quân cờ của mình
+                else if (piece && piece.color === currentTurn) {
+                    selectedPiece = { row, col };
+                    renderBoard();
+                }
+            }
+            
+            // Xử lý nút chơi lại
+            playAgainBtn.addEventListener('click', function() {
+                gameActive = true;
+                currentTurn = 'white';
+                boardState = createInitialBoard();
+                moveHistory = [];
+                castlingAvailability = {
+                    white: { kingMoved: false, rookA: false, rookH: false },
+                    black: { kingMoved: false, rookA: false, rookH: false }
+                };
+                enPassantTarget = null;
+                startTime = Date.now();
+                turnIndicator.textContent = 'Lượt đi: Trắng';
+                matchTimer.textContent = 'Thời gian trận đấu: 0 phút 0 giây';
+                gameOverModal.style.display = 'none';
+                promotionModal.style.display = 'none';
+                renderBoard();
+                startTimer();
+            });
+            
+            // Khởi tạo bàn cờ và bộ đếm thời gian
+            renderBoard();
+            startTimer();
+        });
+    </script>
+</body>
+</html>
